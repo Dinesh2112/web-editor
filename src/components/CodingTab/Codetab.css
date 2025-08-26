@@ -1,0 +1,18 @@
+.code-tab {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  .code-section {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    margin: 0 10px;
+  }
+  
+  pre {
+    white-space: pre-wrap; /* Allow wrapping of long lines */
+    word-break: break-word; /* Break long words */
+  }
+  

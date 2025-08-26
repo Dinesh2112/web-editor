@@ -1,0 +1,51 @@
+/* src/components/LeftPanel/LeftPanel.css */
+.left-panel {
+    padding: 10px;
+    background-color: #bdc3c7;
+    height: 100%;
+    overflow-y: auto;
+    width: 200px; /* Initial width, will change dynamically */
+  transition: width 0.2s ease;
+  }
+  
+  .layers-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .layer-item {
+    padding: 5px;
+    cursor: pointer;
+  }
+  
+  .layer-item.selected {
+    border: 1px solid #4CAF50; /* Highlight selected layer */
+    background-color: rgba(76, 175, 80, 0.1); /* Slight background for visibility */
+  }
+  
+  .layer-name {
+    width: 100%;
+    border: none;
+    background: none;
+    outline: none;
+  }
+  
+  
+  
+
+  .remove-layer {
+    margin-left: 10px;
+    background-color: transparent;
+    border: none;
+    color: red;
+    cursor: pointer;
+}
+
+.selected {
+  background-color: #e0e0e0; /* Light gray to indicate selection */
+  cursor: pointer;
+}
+
+.selected:hover {
+  background-color: #d0d0d0; /* Slightly darker gray on hover */
+}

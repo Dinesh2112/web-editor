@@ -1,0 +1,86 @@
+.shape {
+  position: absolute;
+  /* Remove the black border */
+  border: none; /* No solid black border */
+  
+  /* Add a subtle shadow for distinction between shapes */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* Light shadow for visual distinction */
+  
+  background-color: lightblue; /* Background color for visibility */
+  cursor: default; /* Default cursor */
+}
+
+.handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: transparent; /* Keep handles transparent until hovered */
+  border: 1px solid black; /* Visible handles with black border */
+  z-index: 10;
+}
+
+.handle.top-left {
+  left: -4px;
+  top: -4px;
+  cursor: nwse-resize; /* Top left corner */
+}
+
+.handle.top-right {
+  right: -4px;
+  top: -4px;
+  cursor: nesw-resize; /* Top right corner */
+}
+
+.handle.bottom-left {
+  left: -4px;
+  bottom: -4px;
+  cursor: nesw-resize; /* Bottom left corner */
+}
+
+.handle.bottom-right {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize; /* Bottom right corner */
+}
+
+.handle.left {
+  left: -4px;
+  top: 50%;
+  cursor: ew-resize; /* Left side */
+}
+
+.handle.right {
+  right: -4px;
+  top: 50%;
+  cursor: ew-resize; /* Right side */
+}
+
+.handle.top {
+  top: -4px;
+  left: 50%;
+  cursor: ns-resize; /* Top side */
+}
+
+.handle.bottom {
+  bottom: -4px;
+  left: 50%;
+  cursor: ns-resize; /* Bottom side */
+}
+
+/* Delete button styles */
+
+/* src/components/Shape.css */
+.text-cursor {
+  display: inline-block;
+  height: 1em; /* Height of the cursor */
+  width: 2px; /* Width of the cursor */
+  background-color: black; /* Color of the cursor */
+  animation: blink 1s step-end infinite; /* Blinking animation */
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0; /* Make the cursor invisible halfway through the animation */
+  }
+}
+

@@ -1,0 +1,31 @@
+.right-panel {
+    padding: 10px;
+    border-left: 1px solid #ccc;
+    width: 200px; /* Initial width, will change dynamically */
+  transition: width 0.2s ease; /* Smooth transition when width changes */
+  overflow-y: auto;  
+}
+  
+  .right-panel label {
+    display: block;
+    margin-bottom: 10px;
+  }
+  
+  .right-panel input {
+    width: 100%;
+    padding: 5px;
+    margin-top: 5px;
+  }
+
+  .border-radius-label:hover {
+    cursor: ew-resize; /* Double-sided arrow for horizontal resize */
+  }
+  .right-panel .border-radius-label {
+    display: flex;
+    align-items: center;
+  }
+  
+  .right-panel .border-radius-label input {
+    margin-left: 5px;
+    width: 60px; /* Make sure the input fits well */
+  }
