@@ -1,241 +1,278 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import './Shape.css';
 
-const Shape = ({ element, updateElement, setSelectedElement, selectedElement }) => {
+const Shape = ({ element, updateElement, setSelectedElement, selectedElement, deleteSelectedElement, canvasWidth, canvasHeight }) => {
   const {
     id, type, x, y, width, height, backgroundColor = '#ffffff',
-    text, fontSize, fontWeight, fontColor, parentDiv, borderRadius = 0, src
+    text, fontSize, fontWeight, fontColor, borderRadius = 0, src
   } = element;
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState(null);
-  const [initialMousePosition, setInitialMousePosition] = useState({ x: 0, y: 0 });
-  const [initialElementPosition, setInitialElementPosition] = useState({ x, y });
-  const [initialDimensions, setInitialDimensions] = useState({ width, height });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const [isEditing, setIsEditing] = useState(false);
   const [inputText, setInputText] = useState(text);
-  const [initialBorderRadius, setInitialBorderRadius] = useState(borderRadius);
-  const [isBorderRadiusDragging, setIsBorderRadiusDragging] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState(0);
 
-  // Track the position of the text and update the element after editing
-  const handleBlur = () => {
-    setIsEditing(false);
-    updateElement(id, { text: inputText, x, y }); // Keep x and y up-to-date
-  };
+  const shapeRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
-  // Handle drag and resize functionality
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (isDragging) {
-        const deltaX = e.clientX - initialMousePosition.x;
-        const deltaY = e.clientY - initialMousePosition.y;
-        const newX = Math.max(0, initialElementPosition.x + deltaX);
-        const newY = Math.max(0, initialElementPosition.y + deltaY);
-        updateElement(id, { x: newX, y: newY });
-      } else if (isResizing) {
-        const deltaX = e.clientX - initialMousePosition.x;
-        const deltaY = e.clientY - initialMousePosition.y;
+  // Memoize selection state
+  const isSelected = useMemo(() => selectedElement === id, [selectedElement, id]);
 
-        let newWidth = initialDimensions.width;
-        let newHeight = initialDimensions.height;
-        let newX = initialElementPosition.x;
-        let newY = initialElementPosition.y;
-
-        switch (resizeDirection) {
-          case 'bottom-right':
-            newWidth = Math.max(50, initialDimensions.width + deltaX);
-            newHeight = Math.max(50, initialDimensions.height + deltaY);
-            break;
-          case 'bottom-left':
-            newWidth = Math.max(50, initialDimensions.width - deltaX);
-            newX = initialElementPosition.x + deltaX;
-            newHeight = Math.max(50, initialDimensions.height + deltaY);
-            break;
-          case 'top-right':
-            newWidth = Math.max(50, initialDimensions.width + deltaX);
-            newHeight = Math.max(50, initialDimensions.height - deltaY);
-            newY = initialElementPosition.y + deltaY;
-            break;
-          case 'top-left':
-            newWidth = Math.max(50, initialDimensions.width - deltaX);
-            newX = initialElementPosition.x + deltaX;
-            newHeight = Math.max(50, initialDimensions.height - deltaY);
-            newY = initialElementPosition.y + deltaY;
-            break;
-          case 'all-sides':
-            newWidth = Math.max(50, initialDimensions.width + deltaX);
-            newHeight = Math.max(50, initialDimensions.height + deltaY);
-            break;
-          default:
-            break;
-        }
-
-        if (type === 'circle') {
-          newHeight = newWidth; // Maintain aspect ratio for circles
-        }
-
-        updateElement(id, { x: newX, y: newY, width: newWidth, height: newHeight });
-      } else if (isBorderRadiusDragging) {
-        const deltaX = e.clientX - initialMousePosition.x;
-        const newBorderRadius = Math.max(0, initialBorderRadius + deltaX); // Prevent negative border radius
-        updateElement(id, { borderRadius: newBorderRadius });
+  // Throttle updates to 60fps for smooth performance
+  const throttledUpdate = useCallback((updates) => {
+    const now = performance.now();
+    if (now - lastUpdateTime >= 16.67) { // 60fps = 16.67ms per frame
+      updateElement(id, updates);
+      setLastUpdateTime(now);
+    } else {
+      // Cancel previous animation frame and schedule new one
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
-    };
+      animationFrameRef.current = requestAnimationFrame(() => {
+        updateElement(id, updates);
+        setLastUpdateTime(performance.now());
+      });
+    }
+  }, [id, updateElement, lastUpdateTime]);
 
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      setIsResizing(false);
-      setIsBorderRadiusDragging(false);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [
-    isDragging, isResizing, isBorderRadiusDragging, initialMousePosition,
-    initialElementPosition, initialDimensions, resizeDirection,
-    initialBorderRadius, updateElement, id
-  ]);
-
-  const handleMouseDown = (e) => {
+  // Handle mouse down for dragging and resizing
+  const handleMouseDown = useCallback((e) => {
     e.preventDefault();
-    setSelectedElement(id);
     e.stopPropagation();
-
+    
+    setSelectedElement(id);
+    
     if (e.target.dataset.handle) {
+      // Start resizing
       setIsResizing(true);
       setResizeDirection(e.target.dataset.handle);
-      setInitialMousePosition({ x: e.clientX, y: e.clientY });
-      setInitialDimensions({ width, height });
-      setInitialElementPosition({ x, y });
+      setResizeStart({
+        x: e.clientX,
+        y: e.clientY,
+        width: width,
+        height: height,
+        startX: x,
+        startY: y
+      });
     } else {
+      // Start dragging
       setIsDragging(true);
-      setInitialMousePosition({ x: e.clientX, y: e.clientY });
-      setInitialElementPosition({ x, y });
+      setDragStart({
+        x: e.clientX - x,
+        y: e.clientY - y
+      });
     }
-  };
+  }, [id, x, y, width, height, setSelectedElement]);
 
-  const handleDoubleClick = () => {
-    setIsEditing(true);
-  };
+  // Handle mouse move for smooth dragging and resizing
+  const handleMouseMove = useCallback((e) => {
+    if (isDragging) {
+      const newX = Math.max(0, Math.min(e.clientX - dragStart.x, canvasWidth - width));
+      const newY = Math.max(0, Math.min(e.clientY - dragStart.y, canvasHeight - height));
+      
+      // Use throttled update for smooth performance
+      throttledUpdate({ x: newX, y: newY });
+    } else if (isResizing) {
+      const deltaX = e.clientX - resizeStart.x;
+      const deltaY = e.clientY - resizeStart.y;
+      
+      let newWidth = resizeStart.width;
+      let newHeight = resizeStart.height;
+      let newX = resizeStart.startX;
+      let newY = resizeStart.startY;
+      
+      switch (resizeDirection) {
+        case 'bottom-right':
+          newWidth = Math.max(50, Math.min(resizeStart.width + deltaX, canvasWidth - resizeStart.startX));
+          newHeight = Math.max(50, Math.min(resizeStart.height + deltaY, canvasHeight - resizeStart.startY));
+          break;
+        case 'bottom-left':
+          newWidth = Math.max(50, Math.min(resizeStart.width - deltaX, resizeStart.startX));
+          newX = Math.max(0, Math.min(resizeStart.startX + deltaX, canvasWidth - 50));
+          newHeight = Math.max(50, Math.min(resizeStart.height + deltaY, canvasHeight - resizeStart.startY));
+          break;
+        case 'top-right':
+          newWidth = Math.max(50, Math.min(resizeStart.width + deltaX, canvasWidth - resizeStart.startX));
+          newHeight = Math.max(50, Math.min(resizeStart.height - deltaY, resizeStart.startY));
+          newY = Math.max(0, Math.min(resizeStart.startY + deltaY, canvasHeight - 50));
+          break;
+        case 'top-left':
+          newWidth = Math.max(50, Math.min(resizeStart.width - deltaX, resizeStart.startX));
+          newHeight = Math.max(50, Math.min(resizeStart.height - deltaY, resizeStart.startY));
+          newX = Math.max(0, Math.min(resizeStart.startX + deltaX, canvasWidth - 50));
+          newY = Math.max(0, Math.min(resizeStart.startY + deltaY, canvasHeight - 50));
+          break;
+        case 'left':
+          newWidth = Math.max(50, Math.min(resizeStart.width - deltaX, resizeStart.startX));
+          newX = Math.max(0, Math.min(resizeStart.startX + deltaX, canvasWidth - 50));
+          break;
+        case 'right':
+          newWidth = Math.max(50, Math.min(resizeStart.width + deltaX, canvasWidth - resizeStart.startX));
+          break;
+        case 'top':
+          newHeight = Math.max(50, Math.min(resizeStart.height - deltaY, resizeStart.startY));
+          newY = Math.max(0, Math.min(resizeStart.startY + deltaY, canvasHeight - 50));
+          break;
+        case 'bottom':
+          newHeight = Math.max(50, Math.min(resizeStart.height + deltaY, canvasHeight - resizeStart.startY));
+          break;
+        default:
+          break;
+      }
+      
+      // Maintain aspect ratio for circles
+      if (type === 'circle') {
+        const size = Math.min(newWidth, newHeight);
+        newWidth = size;
+        newHeight = size;
+      }
+      
+      // Use throttled update for smooth performance
+      throttledUpdate({ x: newX, y: newY, width: newWidth, height: newHeight });
+    }
+  }, [isDragging, isResizing, dragStart, resizeStart, resizeDirection, width, height, canvasWidth, canvasHeight, throttledUpdate, type]);
 
-  const handleChange = (e) => {
+  // Handle mouse up
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setIsResizing(false);
+    setResizeDirection(null);
+    
+    // Cancel any pending animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, []);
+
+  // Add event listeners only when needed
+  useEffect(() => {
+    if (isDragging || isResizing) {
+      document.addEventListener('mousemove', handleMouseMove, { passive: true });
+      document.addEventListener('mouseup', handleMouseUp, { passive: true });
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  // Handle double click for text editing
+  const handleDoubleClick = useCallback(() => {
+    if (type === 'text') {
+      setIsEditing(true);
+    }
+  }, [type]);
+
+  // Handle text input change
+  const handleTextChange = useCallback((e) => {
     setInputText(e.target.value);
-  };
+  }, []);
 
-  const isSelected = selectedElement === id;
+  // Handle text input blur
+  const handleTextBlur = useCallback(() => {
+    setIsEditing(false);
+    updateElement(id, { text: inputText });
+  }, [inputText, updateElement, id]);
 
-  const handleBorderRadiusMouseDown = (e) => {
-    if (e.button === 2) { // Only activate on right-click
-      e.preventDefault();
-      setInitialMousePosition({ x: e.clientX });
-      setInitialBorderRadius(borderRadius);
-      setIsBorderRadiusDragging(true);
-    }
-  };
+  // Memoize shape styles
+  const shapeStyles = useMemo(() => ({
+    left: `${x}px`,
+    top: `${y}px`,
+    width: `${width}px`,
+    height: `${height}px`,
+    borderRadius: type === 'circle' ? '50%' : `${borderRadius}px`,
+    backgroundColor: type === 'text' ? 'transparent' : backgroundColor,
+    position: 'absolute',
+    cursor: isDragging || isResizing ? 'grabbing' : 'grab',
+    userSelect: 'none',
+    touchAction: 'none',
+  }), [x, y, width, height, type, borderRadius, backgroundColor, isDragging, isResizing]);
+
+  // Memoize text styles
+  const textStyles = useMemo(() => ({
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'text',
+    padding: '8px',
+    fontSize: fontSize ? `${fontSize}px` : '16px',
+    fontWeight: fontWeight || 'normal',
+    color: fontColor || '#000000',
+    border: 'none',
+    background: 'transparent',
+    outline: 'none',
+    textAlign: 'center',
+    wordWrap: 'break-word',
+    overflowWrap: 'break-word',
+    userSelect: 'text',
+  }), [fontSize, fontWeight, fontColor]);
 
   return (
     <div
-      className={`shape ${type}`} // Corrected className syntax
-      style={{
-        left: `${x}px`, // Corrected template literal usage for inline styles
-        top: `${y}px`,
-        width: type === 'circle' ? `${height}px` : `${width}px`,
-        height: type === 'circle' ? `${height}px` : `${height}px`,
-        borderRadius: type === 'circle' ? '50%' : `${borderRadius}px`,
-        backgroundColor: type === 'text' ? 'transparent' : backgroundColor || '#ffffff',
-        position: 'absolute',
-        cursor: 'default',
-        border: isSelected && (isEditing || isResizing) ? '2px dotted blue' : 'none',
-      }}
+      ref={shapeRef}
+      className={`shape ${type} ${isSelected ? 'selected' : ''}`}
+      style={shapeStyles}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
-      onContextMenu={(e) => e.preventDefault()}
+      data-type={type}
     >
       {type === 'text' ? (
         isEditing ? (
           <input
             type="text"
             value={inputText}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: '2px dotted blue',
-              backgroundColor: 'transparent',
-              color: '#000',
-              outline: 'none',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-            }}
+            onChange={handleTextChange}
+            onBlur={handleTextBlur}
+            style={textStyles}
             autoFocus
           />
         ) : (
-          <span
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'inline-block',
-              cursor: 'text',
-              padding: '5px',
-              fontSize: fontSize ? `${fontSize}px` : '16px',
-              fontWeight: fontWeight || 'normal',
-              color: fontColor || '#000000',
-              border: 'none',
-            }}
-          >
-            {inputText}
+          <span style={textStyles}>
+            {inputText || 'Double-click to edit'}
           </span>
         )
       ) : type === 'image' ? (
         <img
           src={src}
           alt="Element"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            borderRadius: `${borderRadius}px`,
-            cursor: 'move',
-          }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          draggable={false}
         />
       ) : null}
 
-      {/* Invisible handle for border-radius drag interaction */}
-      {isSelected && (
-        <div
-          className="border-radius-handle"
-          onMouseDown={handleBorderRadiusMouseDown}
-          style={{
-            position: 'absolute',
-            top: '0',
-            right: '-20px',
-            cursor: 'ew-resize',
-            width: '10px',
-            height: '10px',
-            backgroundColor: 'transparent'
-          }}
-        />
-      )}
-
-      {/* Resize handles for selected elements */}
+      {/* Resize handles - only show when selected */}
       {isSelected && (
         <>
-          <div className="handle top-left" data-handle="top-left"></div>
-          <div className="handle top-right" data-handle="top-right"></div>
-          <div className="handle bottom-left" data-handle="bottom-left"></div>
-          <div className="handle bottom-right" data-handle="bottom-right"></div>
+          <div className="handle top-left" data-handle="top-left" />
+          <div className="handle top-right" data-handle="top-right" />
+          <div className="handle bottom-left" data-handle="bottom-left" />
+          <div className="handle bottom-right" data-handle="bottom-right" />
+          <div className="handle left" data-handle="left" />
+          <div className="handle right" data-handle="right" />
+          <div className="handle top" data-handle="top" />
+          <div className="handle bottom" data-handle="bottom" />
         </>
       )}
     </div>
   );
 };
 
-export default Shape;
+export default React.memo(Shape);

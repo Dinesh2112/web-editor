@@ -1,30 +1,107 @@
-/* src/components/Canvas/Canvas.css */
+/* src/components/Canvas/Canvas.css - Modern Professional Design */
 .canvas {
   width: 100%;
   height: 100%;
-  background-color: #f0f0f0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(120, 198, 255, 0.1) 0%, transparent 50%),
+    #ffffff;
   position: relative;
   overflow: hidden;
-  border: 1px solid #ccc;
+  border: 1px solid #3a3a3a;
+  transition: all 0.3s ease;
 }
-  .canvas.highlight {
-    background: rgba(0, 0, 0, 0.1);
+
+.canvas.highlight {
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(64, 156, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(64, 156, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(64, 156, 255, 0.15) 0%, transparent 50%),
+    #ffffff;
+}
+
+/* Canvas drop zone styling */
+.canvas.drop-zone {
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(64, 156, 255, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(64, 156, 255, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(64, 156, 255, 0.2) 0%, transparent 50%),
+    #ffffff;
+  border: 2px dashed #409cff;
+  box-shadow: inset 0 0 20px rgba(64, 156, 255, 0.1);
+}
+
+/* Canvas selection area */
+.canvas-selection {
+  position: absolute;
+  border: 2px solid #409cff;
+  background: rgba(64, 156, 255, 0.1);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 5;
+  animation: selectionFade 0.2s ease-out;
+}
+
+@keyframes selectionFade {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
-  
-  /* Gridlines */
-  .gridline {
-    position: absolute;
-    background: rgba(0, 0, 255, 0.2);
-    z-index: 1; /* Ensure gridlines are behind shapes */
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
-  
-  .gridline.horizontal {
-    height: 1px;
-    left: 0;
+}
+
+/* Canvas zoom indicator */
+.zoom-indicator {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.zoom-indicator:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: translateY(-1px);
+}
+
+/* Canvas status bar */
+.canvas-status {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.canvas-status:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: translateY(-1px);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .zoom-indicator,
+  .canvas-status {
+    font-size: 11px;
+    padding: 6px 10px;
   }
-  
-  .gridline.vertical {
-    width: 1px;
-    top: 0;
-  }
+}
   

@@ -6,18 +6,40 @@ const RightPanel = ({ selectedElement, elements, updateElement, deleteElement })
   const [initialX, setInitialX] = useState(0);
   const [initialRadius, setInitialRadius] = useState(0);
 
-  if (!selectedElement) return <div className="right-panel">No element selected</div>;
+  if (!selectedElement) return (
+    <div className="right-panel">
+      <h3>Properties</h3>
+      <div style={{ 
+        textAlign: 'center', 
+        color: 'rgba(255, 255, 255, 0.5)', 
+        padding: '40px 20px',
+        fontStyle: 'italic'
+      }}>
+        Select an element to edit its properties
+      </div>
+    </div>
+  );
 
   const element = elements.find(el => el.id === selectedElement);
-  if (!element) return <div className="right-panel">Element not found</div>;
-
-  const CANVAS_WIDTH = 836;
+  if (!element) return (
+    <div className="right-panel">
+      <h3>Properties</h3>
+      <div style={{ 
+        textAlign: 'center', 
+        color: 'rgba(255, 255, 255, 0.5)', 
+        padding: '40px 20px',
+        fontStyle: 'italic'
+      }}>
+        Element not found
+      </div>
+    </div>
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     const updatedProperties = {
       ...element,
-      [name]: name === 'backgroundColor' ? value : parseInt(value, 10) || 0
+      [name]: name === 'backgroundColor' || name === 'fontColor' ? value : parseInt(value, 10) || 0
     };
     updateElement(selectedElement, updatedProperties);
   };
@@ -32,7 +54,11 @@ const RightPanel = ({ selectedElement, elements, updateElement, deleteElement })
     updateElement(selectedElement, { ...element, headingType: value });
   };
 
-  const handleDelete = () => deleteElement(selectedElement);
+  const handleDelete = () => {
+    if (deleteElement) {
+      deleteElement();
+    }
+  };
 
   const handleParentChange = (e) => {
     const newParentId = e.target.value === 'none' ? null : e.target.value;
@@ -55,8 +81,6 @@ const RightPanel = ({ selectedElement, elements, updateElement, deleteElement })
 
   const handleMouseUp = () => setIsDragging(false);
 
-  const rightValue = CANVAS_WIDTH - (element.x + element.width);
-
   return (
     <div
       className="right-panel"
@@ -64,67 +88,74 @@ const RightPanel = ({ selectedElement, elements, updateElement, deleteElement })
       onMouseUp={handleMouseUp}
     >
       <h3>Properties</h3>
-      <label>
-        Parent Div:
-        <select value={element.parentId || 'none'} onChange={handleParentChange}>
-          <option value="none">Canvas</option>
-          {elements
-            .filter((el) => el.id !== selectedElement)
-            .map((el) => (
-              <option key={el.id} value={el.id}>{el.type}-{el.id}</option>
-            ))}
-        </select>
-      </label>
+      
+      {/* Hierarchy */}
+      <div className="property-group">
+        <h4>Hierarchy</h4>
+        <label>
+          Parent Div:
+          <select value={element.parentId || 'none'} onChange={handleParentChange}>
+            <option value="none">Canvas</option>
+            {elements
+              .filter((el) => el.id !== selectedElement)
+              .map((el) => (
+                <option key={el.id} value={el.id}>{el.type}-{el.id}</option>
+              ))}
+          </select>
+        </label>
+      </div>
 
       {/* Position */}
-      <label>Top:
-        <input type="number" name="y" value={element.y || ''} onChange={handleChange} />
-      </label>
+      <div className="property-group">
+        <h4>Position</h4>
+        <label>Top:
+          <input type="number" name="y" value={element.y || ''} onChange={handleChange} />
+        </label>
 
-      <label>Left:
-        <input type="number" name="x" value={element.x || ''} onChange={handleChange} />
-      </label>
-
-      <label>Right:
-        <input type="number" name="right" value={rightValue || ''} readOnly />
-      </label>
+        <label>Left:
+          <input type="number" name="x" value={element.x || ''} onChange={handleChange} />
+        </label>
+      </div>
 
       {/* Size */}
-      <label>Width:
-        <input type="number" name="width" value={element.width || ''} onChange={handleChange} />
-      </label>
-
-      <label>Height:
-        <input type="number" name="height" value={element.height || ''} onChange={handleChange} />
-      </label>
-
-      {/* Color */}
-      <label>Background Color:
-        <input type="color" name="backgroundColor" value={element.backgroundColor || '#ffffff'} onChange={handleChange} />
-      </label>
-
-      {/* Border Radius (only for rectangles) */}
-      {element.type === 'rectangle' && (
-        <label
-          className="border-radius-label"
-          style={{ cursor: 'default' }}
-        >
-          Border Radius:
-          <input
-            type="number"
-            name="borderRadius"
-            value={element.borderRadius || 0}
-            onChange={handleChange}
-            style={{ width: '60px' }}
-            onMouseEnter={(e) => e.target.style.cursor = 'ew-resize'}
-            onMouseDown={handleMouseDown}
-          />
+      <div className="property-group">
+        <h4>Size</h4>
+        <label>Width:
+          <input type="number" name="width" value={element.width || ''} onChange={handleChange} />
         </label>
-      )}
+
+        <label>Height:
+          <input type="number" name="height" value={element.height || ''} onChange={handleChange} />
+        </label>
+      </div>
+
+      {/* Appearance */}
+      <div className="property-group">
+        <h4>Appearance</h4>
+        <label>Background Color:
+          <input type="color" name="backgroundColor" value={element.backgroundColor || '#ffffff'} onChange={handleChange} />
+        </label>
+
+        {/* Border Radius (only for rectangles) */}
+        {element.type === 'rectangle' && (
+          <label className="border-radius-label">
+            Border Radius:
+            <input
+              type="number"
+              name="borderRadius"
+              value={element.borderRadius || 0}
+              onChange={handleChange}
+              onMouseEnter={(e) => e.target.style.cursor = 'ew-resize'}
+              onMouseDown={handleMouseDown}
+            />
+          </label>
+        )}
+      </div>
 
       {/* Text Properties */}
       {element.type === 'text' && (
-        <>
+        <div className="property-group">
+          <h4>Typography</h4>
           <label>Text:
             <input type="text" name="text" value={element.text || ''} onChange={handleFontChange} />
           </label>
@@ -142,8 +173,9 @@ const RightPanel = ({ selectedElement, elements, updateElement, deleteElement })
               <option value="h4">H4</option>
             </select>
           </label>
-        </>
+        </div>
       )}
+      
       <button onClick={handleDelete}>Delete Element</button>
     </div>
   );

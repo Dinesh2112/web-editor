@@ -1,86 +1,217 @@
+/* src/components/Shape.css - Modern Professional Design */
 .shape {
   position: absolute;
-  /* Remove the black border */
-  border: none; /* No solid black border */
-  
-  /* Add a subtle shadow for distinction between shapes */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* Light shadow for visual distinction */
-  
-  background-color: lightblue; /* Background color for visibility */
-  cursor: default; /* Default cursor */
+  border: none;
+  background-color: #ffffff;
+  cursor: default;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
 }
 
+.shape:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.shape.selected {
+  box-shadow: 0 0 0 2px #409cff, 0 8px 25px rgba(64, 156, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.shape.selected::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid #409cff;
+  border-radius: 6px;
+  pointer-events: none;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.02);
+  }
+}
+
+/* Handle styles for resizing */
 .handle {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  background-color: transparent; /* Keep handles transparent until hovered */
-  border: 1px solid black; /* Visible handles with black border */
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, #409cff, #64b5f6);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
   z-index: 10;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(64, 156, 255, 0.3);
+}
+
+.handle:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 16px rgba(64, 156, 255, 0.5);
 }
 
 .handle.top-left {
-  left: -4px;
-  top: -4px;
-  cursor: nwse-resize; /* Top left corner */
+  left: -6px;
+  top: -6px;
+  cursor: nwse-resize;
 }
 
 .handle.top-right {
-  right: -4px;
-  top: -4px;
-  cursor: nesw-resize; /* Top right corner */
+  right: -6px;
+  top: -6px;
+  cursor: nesw-resize;
 }
 
 .handle.bottom-left {
-  left: -4px;
-  bottom: -4px;
-  cursor: nesw-resize; /* Bottom left corner */
+  left: -6px;
+  bottom: -6px;
+  cursor: nesw-resize;
 }
 
 .handle.bottom-right {
-  right: -4px;
-  bottom: -4px;
-  cursor: nwse-resize; /* Bottom right corner */
+  right: -6px;
+  bottom: -6px;
+  cursor: nwse-resize;
 }
 
 .handle.left {
-  left: -4px;
+  left: -6px;
   top: 50%;
-  cursor: ew-resize; /* Left side */
+  transform: translateY(-50%);
+  cursor: ew-resize;
 }
 
 .handle.right {
-  right: -4px;
+  right: -6px;
   top: 50%;
-  cursor: ew-resize; /* Right side */
+  transform: translateY(-50%);
+  cursor: ew-resize;
 }
 
 .handle.top {
-  top: -4px;
+  top: -6px;
   left: 50%;
-  cursor: ns-resize; /* Top side */
+  transform: translateX(-50%);
+  cursor: ns-resize;
 }
 
 .handle.bottom {
-  bottom: -4px;
+  bottom: -6px;
   left: 50%;
-  cursor: ns-resize; /* Bottom side */
+  transform: translateX(-50%);
+  cursor: ns-resize;
 }
 
-/* Delete button styles */
-
-/* src/components/Shape.css */
+/* Text cursor styles */
 .text-cursor {
   display: inline-block;
-  height: 1em; /* Height of the cursor */
-  width: 2px; /* Width of the cursor */
-  background-color: black; /* Color of the cursor */
-  animation: blink 1s step-end infinite; /* Blinking animation */
+  height: 1em;
+  width: 2px;
+  background: linear-gradient(to bottom, #409cff, #64b5f6);
+  animation: blink 1s step-end infinite;
+  border-radius: 1px;
 }
 
 @keyframes blink {
   50% {
-    opacity: 0; /* Make the cursor invisible halfway through the animation */
+    opacity: 0;
+  }
+}
+
+/* Special styling for different shape types */
+.shape[data-type="rectangle"] {
+  border-radius: 4px;
+}
+
+.shape[data-type="circle"] {
+  border-radius: 50%;
+}
+
+.shape[data-type="text"] {
+  background: transparent;
+  box-shadow: none;
+  padding: 8px 12px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  line-height: 1.4;
+}
+
+.shape[data-type="text"]:hover {
+  background: rgba(64, 156, 255, 0.05);
+  border-radius: 6px;
+}
+
+.shape[data-type="text"].selected {
+  background: rgba(64, 156, 255, 0.1);
+  border-radius: 6px;
+}
+
+/* Image styling */
+.shape[data-type="image"] {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.shape[data-type="image"]:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Selection indicator */
+.shape.selected::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 2px solid rgba(64, 156, 255, 0.3);
+  border-radius: 8px;
+  pointer-events: none;
+  animation: selectionPulse 2s infinite;
+}
+
+@keyframes selectionPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.01);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .handle {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .shape {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shape:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: none;
   }
 }
 

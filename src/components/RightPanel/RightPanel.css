@@ -1,31 +1,207 @@
+/* src/components/RightPanel/RightPanel.css - Modern Professional Design */
 .right-panel {
-    padding: 10px;
-    border-left: 1px solid #ccc;
-    width: 200px; /* Initial width, will change dynamically */
-  transition: width 0.2s ease; /* Smooth transition when width changes */
-  overflow-y: auto;  
+  width: 300px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border-left: 1px solid #3a3a3a;
+  padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100vh;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+  position: relative;
 }
-  
-  .right-panel label {
-    display: block;
-    margin-bottom: 10px;
-  }
-  
-  .right-panel input {
-    width: 100%;
-    padding: 5px;
-    margin-top: 5px;
-  }
 
-  .border-radius-label:hover {
-    cursor: ew-resize; /* Double-sided arrow for horizontal resize */
+/* Custom scrollbar styling */
+.right-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.right-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.right-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #409cff 0%, #64b5f6 100%);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.right-panel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #64b5f6 0%, #90caf9 100%);
+  transform: scale(1.1);
+}
+
+.right-panel::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox scrollbar */
+.right-panel {
+  scrollbar-width: thin;
+  scrollbar-color: #409cff rgba(255, 255, 255, 0.05);
+}
+
+.right-panel h3 {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #409cff;
+  text-align: center;
+}
+
+/* Property groups */
+.property-group {
+  margin-bottom: 25px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.property-group:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(64, 156, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.property-group h4 {
+  color: #409cff;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Labels and inputs */
+.right-panel label {
+  display: block;
+  margin-bottom: 12px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.right-panel label:hover {
+  color: #409cff;
+}
+
+.right-panel input,
+.right-panel select {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  margin-top: 5px;
+}
+
+.right-panel input:focus,
+.right-panel select:focus {
+  outline: none;
+  border-color: #409cff;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(64, 156, 255, 0.1);
+}
+
+.right-panel input:hover,
+.right-panel select:hover {
+  border-color: rgba(64, 156, 255, 0.5);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Color picker specific styling */
+.right-panel input[type="color"] {
+  height: 40px;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.right-panel input[type="color"]:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Number input specific styling */
+.right-panel input[type="number"] {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  text-align: center;
+}
+
+/* Border radius label special styling */
+.border-radius-label {
+  position: relative;
+  cursor: ew-resize;
+}
+
+.border-radius-label::after {
+  content: '↔';
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #409cff;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* Delete button */
+.right-panel button {
+  width: 100%;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.right-panel button:hover {
+  background: linear-gradient(135deg, #ff3742 0%, #ff2f3a 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 71, 87, 0.3);
+}
+
+.right-panel button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(255, 71, 87, 0.3);
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .right-panel {
+    width: 280px;
+    padding: 15px;
   }
-  .right-panel .border-radius-label {
-    display: flex;
-    align-items: center;
+}
+
+@media (max-width: 768px) {
+  .right-panel {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    border-left: none;
+    border-top: 1px solid #3a3a3a;
   }
   
-  .right-panel .border-radius-label input {
-    margin-left: 5px;
-    width: 60px; /* Make sure the input fits well */
+  .property-group {
+    padding: 12px;
+    margin-bottom: 20px;
   }
+}
