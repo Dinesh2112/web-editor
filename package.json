@@ -1,57 +1,26 @@
 {
   "name": "website-editor",
   "version": "1.0.0",
-  "description": "A modern, professional website editor built with React that provides a Figma-like experience for creating and editing web designs. Perfect for designers, developers, and anyone who wants to quickly prototype website layouts.",
-  "keywords": [
-    "website-editor",
-    "design-tool",
-    "figma-clone",
-    "react",
-    "ui-design",
-    "web-design",
-    "prototyping",
-    "drag-and-drop",
-    "design-system",
-    "frontend",
-    "modern-ui",
-    "professional-tool"
-  ],
-  "author": "Your Name <your.email@example.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/website-editor.git"
-  },
-  "homepage": "https://yourusername.github.io/website-editor",
-  "bugs": {
-    "url": "https://github.com/yourusername/website-editor/issues"
-  },
+  "description": "A professional website editor with modern UI, smooth drag-and-drop functionality, and code generation capabilities. Built with React 18, featuring a Figma-like interface with real-time properties editing, layer management, and responsive design.",
   "private": true,
   "dependencies": {
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.7.7",
-    "fabric": "^6.4.3",
-    "framer-motion": "^11.11.1",
-    "monaco-editor": "^0.52.0",
-    "react": "^18.3.1",
+    "react": "^18.2.0",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
-    "react-dom": "^18.3.1",
-    "react-icons": "^5.3.0",
+    "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "styled-components": "^6.1.13",
-    "web-vitals": "^2.1.4",
-    "website-editor": "file:"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "lint": "eslint src/**/*.{js,jsx}",
-    "lint:fix": "eslint src/**/*.{js,jsx} --fix",
+    "lint": "eslint src --ext .js,.jsx",
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
     "format": "prettier --write src/**/*.{js,jsx,css,md}",
     "analyze": "npm run build && npx serve -s build"
   },
@@ -74,11 +43,35 @@
     ]
   },
   "engines": {
-    "node": ">=16.0.0",
+    "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
   "devDependencies": {
     "eslint": "^8.0.0",
     "prettier": "^2.8.0"
+  },
+  "keywords": [
+    "website-editor",
+    "react",
+    "design-tool",
+    "drag-and-drop",
+    "canvas",
+    "ui-builder",
+    "code-generator",
+    "figma-clone",
+    "web-design",
+    "frontend",
+    "modern-ui",
+    "professional"
+  ],
+  "author": "Dinesh",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dinesh2112/web-editor.git"
+  },
+  "homepage": "https://web-editor-opal.vercel.app/",
+  "bugs": {
+    "url": "https://github.com/Dinesh2112/web-editor/issues"
   }
 }
