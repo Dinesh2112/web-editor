@@ -1,182 +1,141 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { 
+  FiAlignLeft, 
+  FiAlignCenter, 
+  FiAlignRight, 
+  FiChevronDown,
+  FiPlus,
+  FiTrash2,
+  FiEye
+} from 'react-icons/fi';
+import {
+  MdAlignVerticalTop,
+  MdAlignVerticalCenter,
+  MdAlignVerticalBottom
+} from 'react-icons/md';
 import './RightPanel.css';
 
+const PropertyInput = ({ label, value, onChange, type = "number", suffix = "" }) => (
+  <div className="property-field">
+    <div className="field-label">{label}</div>
+    <div className="field-control">
+      <input 
+        type={type} 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)}
+        className="field-input"
+        spellCheck={false}
+      />
+      {suffix && <span className="field-suffix">{suffix}</span>}
+    </div>
+  </div>
+);
+
 const RightPanel = ({ selectedElement, elements, updateElement, deleteElement }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [initialX, setInitialX] = useState(0);
-  const [initialRadius, setInitialRadius] = useState(0);
-
-  if (!selectedElement) return (
-    <div className="right-panel">
-      <h3>Properties</h3>
-      <div style={{ 
-        textAlign: 'center', 
-        color: 'rgba(255, 255, 255, 0.5)', 
-        padding: '40px 20px',
-        fontStyle: 'italic'
-      }}>
-        Select an element to edit its properties
-      </div>
-    </div>
-  );
-
   const element = elements.find(el => el.id === selectedElement);
+
   if (!element) return (
-    <div className="right-panel">
-      <h3>Properties</h3>
-      <div style={{ 
-        textAlign: 'center', 
-        color: 'rgba(255, 255, 255, 0.5)', 
-        padding: '40px 20px',
-        fontStyle: 'italic'
-      }}>
-        Element not found
+    <div className="figma-sidebar right">
+      <div className="sidebar-section">
+        <div className="section-header">Design</div>
+        <div className="empty-state">Select a layer to view properties</div>
       </div>
     </div>
   );
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    const updatedProperties = {
-      ...element,
-      [name]: name === 'backgroundColor' || name === 'fontColor' ? value : parseInt(value, 10) || 0
-    };
-    updateElement(selectedElement, updatedProperties);
-  };
-
-  const handleFontChange = (e) => {
-    const { name, value } = e.target;
-    updateElement(selectedElement, { ...element, [name]: value });
-  };
-
-  const handleHeadingChange = (e) => {
-    const { value } = e.target;
-    updateElement(selectedElement, { ...element, headingType: value });
-  };
-
-  const handleDelete = () => {
-    if (deleteElement) {
-      deleteElement();
+  const handleUpdate = (name, val) => {
+    let finalVal = val;
+    if (['x', 'y', 'width', 'height', 'fontSize', 'borderRadius'].includes(name)) {
+      finalVal = parseFloat(val) || 0;
     }
+    updateElement(selectedElement, { [name]: finalVal });
   };
-
-  const handleParentChange = (e) => {
-    const newParentId = e.target.value === 'none' ? null : e.target.value;
-    updateElement(selectedElement, { ...element, parentId: newParentId });
-  };
-
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    setInitialX(e.clientX);
-    setInitialRadius(element.borderRadius || 0);
-  };
-
-  const handleMouseMove = (e) => {
-    if (isDragging) {
-      const deltaX = e.clientX - initialX;
-      const newRadius = Math.max(0, initialRadius + deltaX);
-      updateElement(selectedElement, { ...element, borderRadius: newRadius });
-    }
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
 
   return (
-    <div
-      className="right-panel"
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-    >
-      <h3>Properties</h3>
-      
-      {/* Hierarchy */}
-      <div className="property-group">
-        <h4>Hierarchy</h4>
-        <label>
-          Parent Div:
-          <select value={element.parentId || 'none'} onChange={handleParentChange}>
-            <option value="none">Canvas</option>
-            {elements
-              .filter((el) => el.id !== selectedElement)
-              .map((el) => (
-                <option key={el.id} value={el.id}>{el.type}-{el.id}</option>
-              ))}
-          </select>
-        </label>
-      </div>
-
-      {/* Position */}
-      <div className="property-group">
-        <h4>Position</h4>
-        <label>Top:
-          <input type="number" name="y" value={element.y || ''} onChange={handleChange} />
-        </label>
-
-        <label>Left:
-          <input type="number" name="x" value={element.x || ''} onChange={handleChange} />
-        </label>
-      </div>
-
-      {/* Size */}
-      <div className="property-group">
-        <h4>Size</h4>
-        <label>Width:
-          <input type="number" name="width" value={element.width || ''} onChange={handleChange} />
-        </label>
-
-        <label>Height:
-          <input type="number" name="height" value={element.height || ''} onChange={handleChange} />
-        </label>
-      </div>
-
-      {/* Appearance */}
-      <div className="property-group">
-        <h4>Appearance</h4>
-        <label>Background Color:
-          <input type="color" name="backgroundColor" value={element.backgroundColor || '#ffffff'} onChange={handleChange} />
-        </label>
-
-        {/* Border Radius (only for rectangles) */}
-        {element.type === 'rectangle' && (
-          <label className="border-radius-label">
-            Border Radius:
-            <input
-              type="number"
-              name="borderRadius"
-              value={element.borderRadius || 0}
-              onChange={handleChange}
-              onMouseEnter={(e) => e.target.style.cursor = 'ew-resize'}
-              onMouseDown={handleMouseDown}
-            />
-          </label>
-        )}
-      </div>
-
-      {/* Text Properties */}
-      {element.type === 'text' && (
-        <div className="property-group">
-          <h4>Typography</h4>
-          <label>Text:
-            <input type="text" name="text" value={element.text || ''} onChange={handleFontChange} />
-          </label>
-          <label>Font Size:
-            <input type="number" name="fontSize" value={element.fontSize || ''} onChange={handleFontChange} />
-          </label>
-          <label>Font Color:
-            <input type="color" name="fontColor" value={element.fontColor || '#000000'} onChange={handleFontChange} />
-          </label>
-          <label>Heading Type:
-            <select name="headingType" value={element.headingType || 'h1'} onChange={handleHeadingChange}>
-              <option value="h1">H1</option>
-              <option value="h2">H2</option>
-              <option value="h3">H3</option>
-              <option value="h4">H4</option>
-            </select>
-          </label>
+    <div className="figma-sidebar right">
+      <div className="sidebar-section tight">
+        <div className="alignment-bar">
+          <FiAlignLeft className="align-icon" title="Align Left" />
+          <FiAlignCenter className="align-icon" title="Align Horizontal Center" />
+          <FiAlignRight className="align-icon" title="Align Right" />
+          <div className="divider-v"></div>
+          <MdAlignVerticalTop className="align-icon" title="Align Top" />
+          <MdAlignVerticalCenter className="align-icon" title="Align Vertical Center" />
+          <MdAlignVerticalBottom className="align-icon" title="Align Bottom" />
         </div>
+      </div>
+
+      <div className="divider-h"></div>
+
+      <div className="sidebar-section">
+        <div className="section-header">Layout</div>
+        <div className="property-grid-2x2">
+          <PropertyInput label="X" value={Math.round(element.x)} onChange={(v) => handleUpdate('x', v)} />
+          <PropertyInput label="Y" value={Math.round(element.y)} onChange={(v) => handleUpdate('y', v)} />
+          <PropertyInput label="W" value={Math.round(element.width)} onChange={(v) => handleUpdate('width', v)} />
+          <PropertyInput label="H" value={Math.round(element.height)} onChange={(v) => handleUpdate('height', v)} />
+        </div>
+        <div className="property-grid-2x2 mt-12">
+          <PropertyInput label="∠" value={0} onChange={() => {}} suffix="°" />
+          <PropertyInput label="R" value={element.borderRadius} onChange={(v) => handleUpdate('borderRadius', v)} />
+        </div>
+      </div>
+
+      <div className="divider-h"></div>
+
+      <div className="sidebar-section">
+        <div className="section-header">
+          <span>Fill</span>
+          <FiPlus size={14} className="add-icon" />
+        </div>
+        <div className="fill-item">
+          <div 
+            className="color-preview" 
+            style={{ backgroundColor: element.backgroundColor }}
+            onClick={() => document.getElementById('color-picker').click()}
+          ></div>
+          <input 
+            id="color-picker"
+            type="color" 
+            value={element.backgroundColor} 
+            onChange={(e) => handleUpdate('backgroundColor', e.target.value)}
+            style={{ display: 'none' }}
+          />
+          <span className="hex-value">{element.backgroundColor.toUpperCase()}</span>
+          <span className="opacity-value">100%</span>
+          <FiEye size={12} className="eye-icon" />
+        </div>
+      </div>
+
+      {element.type === 'text' && (
+        <>
+          <div className="divider-h"></div>
+          <div className="sidebar-section">
+            <div className="section-header">Text</div>
+            <div className="typography-group">
+              <div className="font-selector">
+                <span>Inter</span>
+                <FiChevronDown size={14} />
+              </div>
+              <div className="font-weight-selector">
+                <span>{element.fontWeight || 'Regular'}</span>
+                <FiChevronDown size={14} />
+              </div>
+              <div className="property-grid-2x2 mt-12">
+                <PropertyInput label="Size" value={element.fontSize} onChange={(v) => handleUpdate('fontSize', v)} />
+                <PropertyInput label="Line" value={1.2} onChange={() => {}} />
+              </div>
+            </div>
+          </div>
+        </>
       )}
-      
-      <button onClick={handleDelete}>Delete Element</button>
+
+      <div className="sidebar-section mt-auto p-16">
+        <button className="delete-layer-btn" onClick={deleteElement}>
+          <FiTrash2 size={14} />
+          <span>Delete Layer</span>
+        </button>
+      </div>
     </div>
   );
 };

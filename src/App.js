@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import Navbar from './components/Navbar/Navbar';
@@ -8,173 +8,99 @@ import RightPanel from './components/RightPanel/RightPanel';
 import CodeTab from './components/CodingTab/CodeTab';
 import './App.css';
 
+// Root App Component - The Orchestrator
 function App() {
-  const [elements, setElements] = useState([]); // Store all elements on the canvas
-  const [selectedElement, setSelectedElement] = useState(null); // Track the selected element
-  const [layers, setLayers] = useState([]); // Store all layers for the LeftPanel
-  const [shapeCounts, setShapeCounts] = useState({ rectangle: 0, circle: 0, text: 0 }); // Track counts of each shape
-  const [showWelcome, setShowWelcome] = useState(true); // Welcome screen state
-  const [isLoading, setIsLoading] = useState(false); // Loading state
-  const [showCodeTab, setShowCodeTab] = useState(false); // Code generation tab state
+  const [elements, setElements] = useState([]);
+  const [selectedElement, setSelectedElement] = useState(null);
+  const [showCodeTab, setShowCodeTab] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate loading on app start
+  // Initialize Project State
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      setShowWelcome(false);
-    }, 2000);
+    // Premium loading sequence
+    const timer = setTimeout(() => setIsLoading(false), 1200);
     return () => clearTimeout(timer);
   }, []);
 
-  const updateElement = (id, updatedElement) => {
-    setElements(elements.map(el => (el.id === id ? updatedElement : el)));
-  };
+  // Performance-optimized update function
+  const updateElement = useCallback((id, updates) => {
+    setElements((prev) =>
+      prev.map((el) => (el.id === id ? { ...el, ...updates } : el))
+    );
+  }, []);
 
+  // Professional Deletion logic with hierarchy awareness
   const deleteSelectedElement = useCallback(() => {
-    if (selectedElement !== null) {
-      const deletedElement = elements.find(element => element.id === selectedElement);
-      if (deletedElement) {
-        // Decrease count for the deleted element's type
-        setShapeCounts(prevCounts => ({
-          ...prevCounts,
-          [deletedElement.type]: Math.max(0, prevCounts[deletedElement.type] - 1) // Prevent count going below 0
-        }));
-      }
+    if (!selectedElement) return;
 
-      // Remove the corresponding layer from the LeftPanel
-      setLayers(layers.filter(layer => layer.id !== selectedElement));
+    setElements((prev) => {
+      const filtered = prev.filter((el) => el.id !== selectedElement);
+      // Detach children if parent is deleted
+      return filtered.map(el => el.parentId === selectedElement ? { ...el, parentId: null } : el);
+    });
+    setSelectedElement(null);
+  }, [selectedElement]);
 
-      // Remove the element from the canvas
-      setElements(elements.filter(element => element.id !== selectedElement));
-      setSelectedElement(null); // Unselect after deletion
-    }
-  }, [selectedElement, elements, layers, setElements, setLayers, setSelectedElement]);
-
-  const addLayer = (layer) => {
-    setLayers((prevLayers) => [...prevLayers, layer]); // Add the new layer to the global state
-  };
-
-  const incrementShapeCount = (type) => {
-    setShapeCounts((prevCounts) => ({
-      ...prevCounts,
-      [type]: prevCounts[type] + 1 // Increment count for the specific shape type
-    }));
-  };
-
-  const toggleCodeTab = () => {
-    setShowCodeTab(!showCodeTab);
-  };
-
-  // Delete the selected element by pressing the delete key
+  // Global Keyboard Shortcuts (Figma Style)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Delete' && selectedElement !== null) {
-        deleteSelectedElement();
-      }
+      // Ignore if typing in an input
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.contentEditable === 'true') return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') deleteSelectedElement();
+      if (e.key === 'Escape') setSelectedElement(null);
     };
 
     window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteSelectedElement]);
 
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [selectedElement, deleteSelectedElement]);
-
-  // Welcome screen component
-  const WelcomeScreen = () => (
-    <div className="welcome-screen">
-      <div className="welcome-content">
-        <div className="welcome-logo">
-          <div className="logo-icon">🎨</div>
-          <h1>Website Editor</h1>
-          <p>Professional Design Tool</p>
-        </div>
-        <div className="welcome-features">
-          <div className="feature">
-            <span className="feature-icon">✨</span>
-            <span>Modern UI Design</span>
-          </div>
-          <div className="feature">
-            <span className="feature-icon">🚀</span>
-            <span>Drag & Drop Interface</span>
-          </div>
-          <div className="feature">
-            <span className="feature-icon">🎯</span>
-            <span>Real-time Properties</span>
-          </div>
-          <div className="feature">
-            <span className="feature-icon">💻</span>
-            <span>Code Generation</span>
-          </div>
-        </div>
-        <div className="welcome-loading">
-          <div className="loading-spinner"></div>
-          <span>Initializing...</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Loading screen component
-  const LoadingScreen = () => (
+  if (isLoading) return (
     <div className="loading-screen">
-      <div className="loading-content">
-        <div className="loading-logo">🎨</div>
-        <h2>Loading Website Editor</h2>
-        <div className="loading-bar">
-          <div className="loading-progress"></div>
-        </div>
-        <p>Preparing your workspace...</p>
+      <div className="loading-logo">🎨</div>
+      <div className="loading-bar">
+        <div className="loading-progress" />
       </div>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 'bold' }}>BOOTING STUDIO PRO...</p>
     </div>
   );
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
-  if (showWelcome) {
-    return <WelcomeScreen />;
-  }
 
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="app">
         <Navbar 
           deleteSelectedElement={deleteSelectedElement} 
-          toggleCodeTab={toggleCodeTab}
+          toggleCodeTab={() => setShowCodeTab(!showCodeTab)}
           showCodeTab={showCodeTab}
         />
-        <div className="content">
+        
+        <main className="content">
           <LeftPanel
-            layers={layers}
+            layers={elements}
             selectedElement={selectedElement}
             setSelectedElement={setSelectedElement}
-            deleteSelectedElement={deleteSelectedElement} // Pass delete functionality
+            updateElement={updateElement}
           />
+          
           {showCodeTab ? (
-            <CodeTab elements={elements} CANVAS_WIDTH={1200} />
+            <CodeTab elements={elements} CANVAS_WIDTH={2000} />
           ) : (
             <Canvas
               elements={elements}
               setElements={setElements}
               selectedElement={selectedElement}
               setSelectedElement={setSelectedElement}
-              addLayer={addLayer}
-              incrementShapeCount={incrementShapeCount} // Pass increment function to Canvas
-              shapeCounts={shapeCounts} // Pass shapeCounts to Canvas
-              updateElement={updateElement} // Pass updateElement to Canvas
-              setLayers={setLayers} // Pass setLayers to Canvas for layer management
-              layers={layers} // Pass layers to Canvas
+              updateElement={updateElement}
             />
           )}
+
           <RightPanel
             selectedElement={selectedElement}
             elements={elements}
             updateElement={updateElement}
             deleteElement={deleteSelectedElement}
           />
-        </div>
+        </main>
       </div>
     </DndProvider>
   );

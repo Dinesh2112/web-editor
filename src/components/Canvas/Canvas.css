@@ -1,107 +1,72 @@
-/* src/components/Canvas/Canvas.css - Modern Professional Design */
-.canvas {
-  width: 100%;
-  height: 100%;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(120, 198, 255, 0.1) 0%, transparent 50%),
-    #ffffff;
+.canvas-container {
+  flex: 1;
+  background-color: #0f0f0f;
   position: relative;
-  overflow: hidden;
-  border: 1px solid #3a3a3a;
-  transition: all 0.3s ease;
+  overflow: auto;
+  display: flex;
+  cursor: default;
+  outline: none;
 }
 
-.canvas.highlight {
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(64, 156, 255, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(64, 156, 255, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(64, 156, 255, 0.15) 0%, transparent 50%),
-    #ffffff;
+.canvas {
+  background-color: #1a1a1a;
+  box-shadow: 0 0 0 1px #333, 0 20px 80px rgba(0,0,0,0.6);
+  position: relative;
+  margin: auto;
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+  transform-origin: center;
+  transition: transform 0.05s ease-out;
+  overflow: visible;
+  flex-shrink: 0;
+  border: 1px solid #222;
 }
 
-/* Canvas drop zone styling */
-.canvas.drop-zone {
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(64, 156, 255, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(64, 156, 255, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(64, 156, 255, 0.2) 0%, transparent 50%),
-    #ffffff;
-  border: 2px dashed #409cff;
-  box-shadow: inset 0 0 20px rgba(64, 156, 255, 0.1);
+.canvas.is-dropping {
+  border: 1px solid var(--accent-blue);
 }
 
-/* Canvas selection area */
-.canvas-selection {
+.canvas.is-over {
+  background-color: #1e1e1e;
+}
+
+.canvas-placeholder {
   position: absolute;
-  border: 2px solid #409cff;
-  background: rgba(64, 156, 255, 0.1);
-  border-radius: 4px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
   pointer-events: none;
-  z-index: 5;
-  animation: selectionFade 0.2s ease-out;
+  color: var(--text-secondary);
+  opacity: 0.2;
 }
 
-@keyframes selectionFade {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+.canvas-placeholder h1 {
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 12px;
 }
 
-/* Canvas zoom indicator */
-.zoom-indicator {
+.canvas-hud {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  backdrop-filter: blur(10px);
-  z-index: 10;
-  transition: all 0.2s ease;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 1000;
 }
 
-.zoom-indicator:hover {
-  background: rgba(0, 0, 0, 0.8);
-  transform: translateY(-1px);
+.zoom-chip, .coord-chip {
+  background-color: rgba(30,30,30,0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
-
-/* Canvas status bar */
-.canvas-status {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  backdrop-filter: blur(10px);
-  z-index: 10;
-  transition: all 0.2s ease;
-}
-
-.canvas-status:hover {
-  background: rgba(0, 0, 0, 0.8);
-  transform: translateY(-1px);
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .zoom-indicator,
-  .canvas-status {
-    font-size: 11px;
-    padding: 6px 10px;
-  }
-}
-  

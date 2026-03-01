@@ -1,217 +1,115 @@
-/* src/components/Shape.css - Modern Professional Design */
-.shape {
+.shape-wrapper {
   position: absolute;
-  border: none;
-  background-color: #ffffff;
-  cursor: default;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  top: 0;
+  left: 0;
+  display: flex;
+  user-select: none;
+  box-sizing: border-box;
+  will-change: transform, width, height;
 }
 
-.shape:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
+.shape-surface {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow 0.2s;
 }
 
-.shape.selected {
-  box-shadow: 0 0 0 2px #409cff, 0 8px 25px rgba(64, 156, 255, 0.3);
-  transform: translateY(-2px);
+.shape-wrapper.active .shape-surface {
+  box-shadow: 0 0 0 2px var(--accent-blue);
 }
 
-.shape.selected::before {
-  content: '';
+.shape-wrapper:hover:not(.active) .shape-surface {
+  box-shadow: 0 0 0 1px var(--accent-blue);
+  cursor: grab;
+}
+
+.shape-wrapper:active {
+  cursor: grabbing;
+}
+
+/* Image Layer */
+.image-content {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* Text Layer */
+.text-content {
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  outline: none;
+  cursor: text;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+/* Selection Overlay & Handles */
+.selection-overlay {
   position: absolute;
   top: -2px;
   left: -2px;
   right: -2px;
   bottom: -2px;
-  border: 2px solid #409cff;
-  border-radius: 6px;
   pointer-events: none;
-  animation: pulse 2s infinite;
+  z-index: 1001;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.02);
-  }
-}
-
-/* Handle styles for resizing */
-.handle {
+.resize-handle {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  background: linear-gradient(135deg, #409cff, #64b5f6);
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  z-index: 10;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(64, 156, 255, 0.3);
-}
-
-.handle:hover {
-  transform: scale(1.2);
-  box-shadow: 0 4px 16px rgba(64, 156, 255, 0.5);
-}
-
-.handle.top-left {
-  left: -6px;
-  top: -6px;
-  cursor: nwse-resize;
-}
-
-.handle.top-right {
-  right: -6px;
-  top: -6px;
-  cursor: nesw-resize;
-}
-
-.handle.bottom-left {
-  left: -6px;
-  bottom: -6px;
-  cursor: nesw-resize;
-}
-
-.handle.bottom-right {
-  right: -6px;
-  bottom: -6px;
-  cursor: nwse-resize;
-}
-
-.handle.left {
-  left: -6px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: ew-resize;
-}
-
-.handle.right {
-  right: -6px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: ew-resize;
-}
-
-.handle.top {
-  top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: ns-resize;
-}
-
-.handle.bottom {
-  bottom: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: ns-resize;
-}
-
-/* Text cursor styles */
-.text-cursor {
-  display: inline-block;
-  height: 1em;
-  width: 2px;
-  background: linear-gradient(to bottom, #409cff, #64b5f6);
-  animation: blink 1s step-end infinite;
+  width: 9px;
+  height: 9px;
+  background-color: white;
+  border: 1px solid var(--accent-blue);
+  pointer-events: all;
   border-radius: 1px;
 }
 
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
+.resize-handle:hover {
+  background-color: var(--accent-blue);
+  transform: scale(1.2);
 }
 
-/* Special styling for different shape types */
-.shape[data-type="rectangle"] {
-  border-radius: 4px;
-}
+.resize-handle.tl { top: -5px; left: -5px; cursor: nwse-resize; }
+.resize-handle.tr { top: -5px; right: -5px; cursor: nesw-resize; }
+.resize-handle.bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.resize-handle.br { bottom: -5px; right: -5px; cursor: nwse-resize; }
+.resize-handle.t { top: -5px; left: calc(50% - 5px); cursor: ns-resize; }
+.resize-handle.b { bottom: -5px; left: calc(50% - 5px); cursor: ns-resize; }
+.resize-handle.l { left: -5px; top: calc(50% - 5px); cursor: ew-resize; }
+.resize-handle.r { right: -5px; top: calc(50% - 5px); cursor: ew-resize; }
 
-.shape[data-type="circle"] {
-  border-radius: 50%;
-}
-
-.shape[data-type="text"] {
-  background: transparent;
-  box-shadow: none;
-  padding: 8px 12px;
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  line-height: 1.4;
-}
-
-.shape[data-type="text"]:hover {
-  background: rgba(64, 156, 255, 0.05);
-  border-radius: 6px;
-}
-
-.shape[data-type="text"].selected {
-  background: rgba(64, 156, 255, 0.1);
-  border-radius: 6px;
-}
-
-/* Image styling */
-.shape[data-type="image"] {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.shape[data-type="image"]:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-/* Selection indicator */
-.shape.selected::after {
-  content: '';
+/* Dimension Labels (Figma Style) */
+.dim-label {
   position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border: 2px solid rgba(64, 156, 255, 0.3);
-  border-radius: 8px;
-  pointer-events: none;
-  animation: selectionPulse 2s infinite;
+  background-color: var(--accent-blue);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
 }
 
-@keyframes selectionPulse {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.01);
-  }
+.dim-label.top {
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .handle {
-    width: 10px;
-    height: 10px;
-  }
-  
-  .shape {
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .shape:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transform: none;
-  }
+.dim-label.side {
+  right: -32px;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
 }
-

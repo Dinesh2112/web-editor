@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useDrop } from 'react-dnd';
 import Shape from '../Shape';
 import './Canvas.css';
@@ -8,150 +8,133 @@ const Canvas = ({
   setElements,
   selectedElement,
   setSelectedElement,
-  addLayer,
-  shapeCounts,
-  incrementShapeCount,
+  updateElement,
 }) => {
   const [scale, setScale] = useState(1);
-  const CANVAS_WIDTH = 1200; // Increased canvas width
-  const CANVAS_HEIGHT = 800; // Added canvas height
+  const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  
+  const CANVAS_WIDTH = 3000; 
+  const CANVAS_HEIGHT = 3000;
 
-  // Memoize the drop function to prevent unnecessary re-renders
   const [{ canDrop, isOver }, drop] = useDrop(() => ({
     accept: 'SHAPE',
     drop: (item, monitor) => {
       const offset = monitor.getClientOffset();
-      if (offset) {
-        addElement(item.type, offset.x, offset.y);
+      if (offset && canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const x = (offset.x - rect.left) / scale;
+        const y = (offset.y - rect.top) / scale;
+        addElement(item.type, x, y);
       }
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
-  }), [shapeCounts]);
+  }), [scale, elements]);
 
-  const generateUniqueId = useCallback(() => Date.now() + Math.random(), []);
-
-  // Memoize the addElement function
   const addElement = useCallback((type, x, y) => {
-    const currentCount = shapeCounts[type] + 1;
-    const elementWidth = 100;
-    const elementHeight = 100;
+    const id = Date.now() + Math.random();
     
-    // Calculate canvas-relative coordinates
-    const canvasRect = document.querySelector('.canvas')?.getBoundingClientRect();
-    if (!canvasRect) return;
-    
-    const canvasX = x - canvasRect.left;
-    const canvasY = y - canvasRect.top;
-    
-    // Ensure element stays within canvas boundaries
-    const newX = Math.max(0, Math.min(canvasX, CANVAS_WIDTH - elementWidth));
-    const newY = Math.max(0, Math.min(canvasY, CANVAS_HEIGHT - elementHeight));
-    
+    // Industrial defaults with proper initial sizing
+    const defaults = {
+      rectangle: { width: 200, height: 120, backgroundColor: '#333333', borderRadius: 8 },
+      circle: { width: 150, height: 150, backgroundColor: '#0D99FF', borderRadius: 999 },
+      text: { width: 300, height: 60, backgroundColor: 'transparent', text: 'Edit this text', fontSize: 32, fontColor: '#FFFFFF', fontWeight: '600' },
+      image: { width: 400, height: 250, backgroundColor: '#252525', src: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60' }
+    };
+
+    const config = defaults[type] || defaults.rectangle;
+
     const newElement = {
-      id: generateUniqueId(),
+      id,
       type,
-      x: newX,
-      y: newY,
-      width: elementWidth,
-      height: elementHeight,
-      backgroundColor: type === 'text' ? 'transparent' : '#ffffff',
-      text: type === 'text' ? 'Enter text' : '',
-      fontSize: '20px',
-      fontColor: '#000000',
+      x: x - (config.width / 2),
+      y: y - (config.height / 2),
+      ...config,
+      name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${elements.length + 1}`,
       parentId: null,
-      name: `${type}${currentCount}`,
-      tagName: 'h2',
-      borderRadius: 0,
+      tagName: type === 'text' ? 'h2' : 'div',
     };
 
     setElements((prev) => [...prev, newElement]);
-    addLayer({ id: newElement.id, name: newElement.name });
-  }, [shapeCounts, generateUniqueId, CANVAS_WIDTH, CANVAS_HEIGHT, setElements, addLayer]);
+    setSelectedElement(id);
+  }, [setElements, setSelectedElement, elements.length]);
 
-  // Optimize the updateElement function
-  const updateElement = useCallback((id, newProperties) => {
-    setElements((prev) =>
-      prev.map((element) => {
-        if (element.id === id) {
-          const updated = { ...element, ...newProperties };
-          
-          // Ensure element stays within canvas boundaries
-          if (updated.x !== undefined) {
-            updated.x = Math.max(0, Math.min(updated.x, CANVAS_WIDTH - (updated.width || element.width)));
-          }
-          if (updated.y !== undefined) {
-            updated.y = Math.max(0, Math.min(updated.y, CANVAS_HEIGHT - (updated.height || element.height)));
-          }
-          if (updated.width !== undefined) {
-            updated.width = Math.max(50, Math.min(updated.width, CANVAS_WIDTH - (updated.x || element.x)));
-          }
-          if (updated.height !== undefined) {
-            updated.height = Math.max(50, Math.min(updated.height, CANVAS_HEIGHT - (updated.y || element.y)));
-          }
-          
-          return updated;
-        }
-        return element;
-      })
-    );
-  }, [CANVAS_WIDTH, CANVAS_HEIGHT, setElements]);
+  // Optimized Zoom and Pan logic
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-  const deleteSelectedElement = useCallback(() => {
-    if (selectedElement !== null) {
-      setElements(elements.filter((element) => element.id !== selectedElement));
+    const handleWheel = (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const delta = e.deltaY;
+        const zoomStep = 0.002;
+        setScale(prev => Math.min(Math.max(0.1, prev - delta * zoomStep), 5));
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    
+    // Center logic on mount
+    if (elements.length === 0) {
+      container.scrollLeft = (CANVAS_WIDTH / 2) - (container.clientWidth / 2);
+      container.scrollTop = (CANVAS_HEIGHT / 2) - (container.clientHeight / 2);
+    }
+    
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [elements.length]);
+
+  const handleCanvasClick = (e) => {
+    if (e.target.classList.contains('canvas') || e.target.classList.contains('canvas-container')) {
       setSelectedElement(null);
     }
-  }, [selectedElement, elements, setElements, setSelectedElement]);
-
-  const handleCanvasClick = useCallback((e) => {
-    if (e.target.classList.contains('canvas')) {
-      setSelectedElement(null);
-    }
-  }, [setSelectedElement]);
-
-  // Debounce zoom to improve performance
-  const handleZoom = useCallback((e) => {
-    if (e.ctrlKey) {
-      e.preventDefault();
-      const delta = e.deltaY;
-      const newScale = delta < 0 ? scale + 0.1 : Math.max(0.1, scale - 0.1);
-      setScale(newScale);
-    }
-  }, [scale]);
-
-  // Memoize the Shape components to prevent unnecessary re-renders
-  const shapeComponents = useMemo(() => {
-    return elements.map((element) => (
-      <Shape
-        key={element.id}
-        element={element}
-        updateElement={updateElement}
-        setSelectedElement={setSelectedElement}
-        selectedElement={selectedElement}
-        deleteSelectedElement={deleteSelectedElement}
-        canvasWidth={CANVAS_WIDTH}
-        canvasHeight={CANVAS_HEIGHT}
-      />
-    ));
-  }, [elements, updateElement, setSelectedElement, selectedElement, deleteSelectedElement, CANVAS_WIDTH, CANVAS_HEIGHT]);
+  };
 
   return (
-    <div
-      ref={drop}
-      className={`canvas ${canDrop ? 'drop-zone' : ''} ${isOver ? 'highlight' : ''}`}
-      style={{ 
-        transform: `scale(${scale})`, 
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-        minHeight: CANVAS_HEIGHT
-      }}
-      onClick={handleCanvasClick}
-      onWheel={handleZoom}
+    <div 
+      className="canvas-container" 
+      ref={containerRef}
+      onMouseDown={handleCanvasClick}
     >
-      {shapeComponents}
+      <div
+        ref={(node) => {
+          drop(node);
+          canvasRef.current = node;
+        }}
+        className={`canvas ${canDrop ? 'is-dropping' : ''} ${isOver ? 'is-over' : ''}`}
+        style={{ 
+          transform: `scale(${scale})`, 
+          width: CANVAS_WIDTH,
+          height: CANVAS_HEIGHT,
+        }}
+      >
+        {elements.map((element, index) => (
+          <Shape
+            key={element.id}
+            element={element}
+            updateElement={updateElement}
+            setSelectedElement={setSelectedElement}
+            selectedElement={selectedElement}
+            scale={scale}
+            index={index} // Pass index for progressive z-indexing
+          />
+        ))}
+
+        {elements.length === 0 && !isOver && (
+          <div className="canvas-placeholder">
+            <h1>Workspace Ready</h1>
+            <p>Drag elements from the top bar to begin. Use Ctrl+Scroll to zoom.</p>
+          </div>
+        )}
+      </div>
+      
+      <div className="canvas-hud">
+        <div className="zoom-chip">{Math.round(scale * 100)}%</div>
+        <div className="coord-chip">Canvas: {CANVAS_WIDTH}x{CANVAS_HEIGHT}</div>
+      </div>
     </div>
   );
 };

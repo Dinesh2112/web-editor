@@ -1,273 +1,200 @@
 import React, { useState, useMemo } from 'react';
-import { FaCopy, FaDownload, FaEye, FaCode, FaFileCode, FaPalette } from 'react-icons/fa';
+import { FiCopy, FiDownload, FiEye, FiCode, FiCheck, FiMonitor, FiLayout } from 'react-icons/fi';
 import './Codetab.css';
 
-const CodeTab = ({ elements, CANVAS_WIDTH = 884 }) => {
+const CodeTab = ({ elements, CANVAS_WIDTH = 3000, CANVAS_HEIGHT = 3000 }) => {
   const [activeTab, setActiveTab] = useState('html');
   const [copied, setCopied] = useState(false);
 
-  // Memoize HTML tree generation
-  const htmlTree = useMemo(() => {
-    const elementMap = {};
-    const rootElements = [];
+  // Advanced Spatial Tree Logic
+  // This builds a tree where shapes inside other shapes are nested in the HTML
+  const generateTree = useMemo(() => {
+    // Sort by area so parents always come before children
+    const sorted = [...elements].sort((a, b) => (b.width * b.height) - (a.width * a.height));
+    const tree = [];
+    const map = new Map();
 
-    elements.forEach((element) => {
-      elementMap[element.id] = { ...element, children: [] };
-    });
+    sorted.forEach(el => {
+      const node = { ...el, children: [] };
+      map.set(el.id, node);
 
-    elements.forEach((element) => {
-      if (element.parentId) {
-        elementMap[element.parentId].children.push(elementMap[element.id]);
+      let foundParentId = null;
+      let minParentArea = Infinity;
+
+      sorted.forEach(potentialParent => {
+        if (potentialParent.id === el.id || potentialParent.type === 'text') return;
+        
+        // Check containment (spatial nesting)
+        const isInside = (
+          el.x >= potentialParent.x &&
+          el.y >= potentialParent.y &&
+          (el.x + el.width) <= (potentialParent.x + potentialParent.width) &&
+          (el.y + el.height) <= (potentialParent.y + potentialParent.height)
+        );
+
+        if (isInside) {
+          const area = potentialParent.width * potentialParent.height;
+          if (area < minParentArea) {
+            minParentArea = area;
+            foundParentId = potentialParent.id;
+          }
+        }
+      });
+
+      if (foundParentId && map.has(foundParentId)) {
+        map.get(foundParentId).children.push(node);
       } else {
-        rootElements.push(elementMap[element.id]);
+        tree.push(node); // Root element
       }
     });
-
-    return rootElements;
+    return tree;
   }, [elements]);
 
-  // Memoize HTML code generation
-  const htmlCode = useMemo(() => {
-    const generateHtmlForElement = (element) => {
-      const childrenHtml = element.children.map(generateHtmlForElement).join('');
+  const generateHTML = (nodes, indent = 1) => {
+    const space = '    '.repeat(indent);
+    return nodes.map(node => {
+      const idStr = `id="${node.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}"`;
+      const classStr = `class="${node.type}"`;
+      const childrenHtml = generateHTML(node.children, indent + 1);
       
-      if (element.type === 'text') {
-        return `<${element.tagName} class="${element.name}" style="font-size: ${element.fontSize}; color: ${element.fontColor};">
-                  ${element.text}
-                </${element.tagName}>`;
+      if (node.type === 'text') {
+        return `${space}<div ${idStr} ${classStr}>${node.text}</div>`;
+      }
+      if (node.children.length > 0) {
+        return `${space}<div ${idStr} ${classStr}>\n${childrenHtml}\n${space}</div>`;
+      }
+      return `${space}<div ${idStr} ${classStr}></div>`;
+    }).join('\n');
+  };
+
+  const generateCSS = (nodes, parent = null) => {
+    let css = '';
+    nodes.forEach(node => {
+      const idSelector = `#${node.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+      
+      // Calculate RELATIVE positioning if nested
+      const relX = parent ? node.x - parent.x : node.x;
+      const relY = parent ? node.y - parent.y : node.y;
+
+      css += `${idSelector} {\n`;
+      css += `    position: absolute;\n`;
+      css += `    left: ${relX}px;\n`;
+      css += `    top: ${relY}px;\n`;
+      css += `    width: ${node.width}px;\n`;
+      css += `    height: ${node.height}px;\n`;
+      
+      if (node.type !== 'text') {
+        css += `    background-color: ${node.backgroundColor};\n`;
+        if (node.borderRadius) css += `    border-radius: ${node.borderRadius}px;\n`;
+      } else {
+        css += `    color: ${node.fontColor};\n`;
+        css += `    font-size: ${node.fontSize}px;\n`;
+        css += `    font-weight: ${node.fontWeight};\n`;
+        css += `    display: flex;\n`;
+        css += `    align-items: center;\n`;
+        css += `    justify-content: center;\n`;
+      }
+      
+      if (node.type === 'image') {
+        css += `    background-image: url('${node.src}');\n`;
+        css += `    background-size: cover;\n`;
+        css += `    background-position: center;\n`;
       }
 
-      return `
-        <div class="${element.name}">
-          ${element.text ? element.text : ''}
-          ${childrenHtml}
-        </div>
-      `;
-    };
+      css += `}\n\n`;
+      css += generateCSS(node.children, node);
+    });
+    return css;
+  };
 
-    return htmlTree.map(generateHtmlForElement).join('');
-  }, [htmlTree]);
+  const htmlBody = useMemo(() => generateHTML(generateTree), [generateTree]);
+  const cssStyle = useMemo(() => generateCSS(generateTree), [generateTree]);
 
-  // Memoize CSS generation
-  const cssCode = useMemo(() => {
-    return elements
-      .map((element) => {
-        let leftCss, topCss, widthCss, heightCss;
-  
-        leftCss = `${(element.x / CANVAS_WIDTH) * 100}vw`;
-        topCss = `${element.y}px`;
-        widthCss = `${(element.width / CANVAS_WIDTH) * 100}vw`;
-        heightCss = `${element.height}px`;
-  
-        const borderRadiusCss = element.type === 'rectangle' && element.borderRadius > 0
-          ? `border-radius: ${element.borderRadius}px;`
-          : (element.type === 'circle' ? 'border-radius: 50%;' : '');
-  
-        const fontSizeCss = element.type === 'text' && element.fontSize ? `font-size: ${element.fontSize};` : '';
-        const fontColorCss = element.type === 'text' && element.fontColor ? `color: ${element.fontColor};` : '';
-        const backgroundColorCss = element.type === 'text' ? 'background-color: transparent;' : `background-color: ${element.backgroundColor};`;
-  
-        const shapeCss = `
-          width: ${element.type !== 'text' ? widthCss : 'auto'};
-          height: ${element.type !== 'text' ? heightCss : 'auto'};
-          ${borderRadiusCss}
-          ${fontSizeCss}
-          ${fontColorCss}
-        `;
-  
-        return `
-          .${element.name} {
-            position: absolute;
-            ${backgroundColorCss}
-            left: ${leftCss};
-            top: ${topCss};
-            ${shapeCss}
-          }
-        `;
-      })
-      .join('\n');
-  }, [elements, CANVAS_WIDTH]);
-
-  // Memoize complete HTML document
-  const completeHtml = useMemo(() => {
-    return `<!DOCTYPE html>
+  const fullArtifact = useMemo(() => `
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generated Website</title>
+    <title>Studio Pro Export</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        :root { --canvas-w: ${CANVAS_WIDTH}px; --canvas-h: ${CANVAS_HEIGHT}px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background-color: #f0f0f0; 
+            font-family: 'Inter', sans-serif; 
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
         }
-        .canvas {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
+        .canvas-root { 
+            position: relative; 
+            width: var(--canvas-w); 
+            height: var(--canvas-h); 
+            background-color: white; 
+            box-shadow: 0 50px 100px rgba(0,0,0,0.1);
         }
-        ${cssCode}
+        ${cssStyle}
     </style>
 </head>
 <body>
-    <div class="canvas">
-        ${htmlCode}
+    <div class="canvas-root">
+${htmlBody}
     </div>
 </body>
-</html>`;
-  }, [htmlCode, cssCode]);
+</html>
+  `.trim(), [htmlBody, cssStyle, CANVAS_WIDTH, CANVAS_HEIGHT]);
 
-  // Copy code to clipboard
-  const copyToClipboard = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy: ', err);
-    }
+  const copy = () => {
+    navigator.clipboard.writeText(fullArtifact);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-
-  // Download code as file
-  const downloadCode = (content, filename, mimeType) => {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // Get current code based on active tab
-  const getCurrentCode = () => {
-    switch (activeTab) {
-      case 'html':
-        return completeHtml;
-      case 'css':
-        return cssCode;
-      case 'preview':
-        return '';
-      default:
-        return '';
-    }
-  };
-
-  // Get current language for syntax highlighting
-  const getCurrentLanguage = () => {
-    switch (activeTab) {
-      case 'html':
-        return 'html';
-      case 'css':
-        return 'css';
-      default:
-        return 'text';
-    }
-  };
-
-  const tabs = [
-    { id: 'html', label: 'HTML', icon: FaFileCode, color: '#e34c26' },
-    { id: 'css', label: 'CSS', icon: FaPalette, color: '#264de4' },
-    { id: 'preview', label: 'Preview', icon: FaEye, color: '#61dafb' }
-  ];
 
   return (
-    <div className="code-tab">
-      {/* Tab Navigation */}
-      <div className="tab-navigation">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-            style={{ '--tab-color': tab.color }}
-          >
-            <tab.icon />
-            <span>{tab.label}</span>
+    <div className="code-studio">
+      <div className="studio-nav">
+        <div className="studio-tabs">
+          <button className={`st-tab ${activeTab === 'html' ? 'active' : ''}`} onClick={() => setActiveTab('html')}>
+            <FiCode size={13} /> <span>Generated Code</span>
           </button>
-        ))}
-      </div>
-
-      {/* Code Actions */}
-      <div className="code-actions">
-        <button
-          className="action-button copy-btn"
-          onClick={() => copyToClipboard(getCurrentCode())}
-          title="Copy to clipboard"
-        >
-          <FaCopy />
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
+          <button className={`st-tab ${activeTab === 'preview' ? 'active' : ''}`} onClick={() => setActiveTab('preview')}>
+            <FiMonitor size={13} /> <span>Live Deployment Preview</span>
+          </button>
+        </div>
         
-        {activeTab !== 'preview' && (
-          <button
-            className="action-button download-btn"
-            onClick={() => {
-              const ext = activeTab === 'html' ? 'html' : 'css';
-              const filename = `generated-website.${ext}`;
-              const mimeType = activeTab === 'html' ? 'text/html' : 'text/css';
-              downloadCode(getCurrentCode(), filename, mimeType);
-            }}
-            title="Download file"
-          >
-            <FaDownload />
-            Download
+        <div className="studio-actions">
+          <button className="st-btn primary" onClick={copy}>
+            {copied ? <FiCheck size={14} /> : <FiCopy size={14} />}
+            <span>{copied ? 'Copied Bundle' : 'Copy HTML/CSS Bundle'}</span>
           </button>
-        )}
+          <button className="st-btn secondary">
+            <FiDownload size={14} />
+            <span>Download .zip</span>
+          </button>
+        </div>
       </div>
 
-      {/* Code Content */}
-      <div className="code-content">
-        {activeTab === 'preview' ? (
-          <div className="preview-container">
-            <div className="preview-header">
-              <h3>Live Preview</h3>
-              <p>This is how your generated website will look</p>
+      <div className="studio-workspace">
+        {activeTab === 'html' ? (
+          <div className="st-editor">
+            <div className="editor-chrome">
+              <div className="dot red" /> <div className="dot yellow" /> <div className="dot green" />
+              <span className="file-name">index.html</span>
             </div>
-            <div className="preview-frame">
-              <iframe
-                srcDoc={completeHtml}
-                title="Website Preview"
-                className="preview-iframe"
-                sandbox="allow-scripts allow-same-origin"
-              />
-            </div>
+            <pre className="code-pre"><code>{fullArtifact}</code></pre>
           </div>
         ) : (
-          <div className="code-editor">
-            <div className="code-header">
-              <span className="code-language">{getCurrentLanguage().toUpperCase()}</span>
-              <span className="code-info">
-                {getCurrentCode().length} characters
-              </span>
+          <div className="st-preview">
+            <div className="preview-toolbar">
+              <FiLayout size={14} /> <span>Simulated Web View ({CANVAS_WIDTH}px)</span>
             </div>
-            <pre className="code-display">
-              <code className={`language-${getCurrentLanguage()}`}>
-                {getCurrentCode()}
-              </code>
-            </pre>
+            <div className="preview-window">
+              <iframe srcDoc={fullArtifact} title="Deployment View" />
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Code Statistics */}
-      <div className="code-stats">
-        <div className="stat-item">
-          <FaCode />
-          <span>Elements: {elements.length}</span>
-        </div>
-        <div className="stat-item">
-          <FaFileCode />
-          <span>HTML: {htmlCode.length} chars</span>
-        </div>
-        <div className="stat-item">
-          <FaPalette />
-          <span>CSS: {cssCode.length} chars</span>
-        </div>
       </div>
     </div>
   );

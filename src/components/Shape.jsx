@@ -1,275 +1,170 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import './Shape.css';
 
-const Shape = ({ element, updateElement, setSelectedElement, selectedElement, deleteSelectedElement, canvasWidth, canvasHeight }) => {
+const Shape = ({ element, updateElement, setSelectedElement, selectedElement, scale, index }) => {
   const {
-    id, type, x, y, width, height, backgroundColor = '#ffffff',
-    text, fontSize, fontWeight, fontColor, borderRadius = 0, src
+    id, type, x, y, width, height, backgroundColor,
+    text, fontSize, fontWeight, fontColor, borderRadius, src
   } = element;
 
-  const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [resizeDirection, setResizeDirection] = useState(null);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [isEditing, setIsEditing] = useState(false);
-  const [inputText, setInputText] = useState(text);
-  const [lastUpdateTime, setLastUpdateTime] = useState(0);
-
+  // Use local state for high-frequency updates
+  const [localPos, setLocalPos] = useState({ x, y, w: width, h: height });
+  const isInteracting = useRef(false);
+  const startRef = useRef({ mx: 0, my: 0, sx: 0, sy: 0, sw: 0, sh: 0, dir: '' });
   const shapeRef = useRef(null);
-  const animationFrameRef = useRef(null);
 
-  // Memoize selection state
-  const isSelected = useMemo(() => selectedElement === id, [selectedElement, id]);
-
-  // Throttle updates to 60fps for smooth performance
-  const throttledUpdate = useCallback((updates) => {
-    const now = performance.now();
-    if (now - lastUpdateTime >= 16.67) { // 60fps = 16.67ms per frame
-      updateElement(id, updates);
-      setLastUpdateTime(now);
-    } else {
-      // Cancel previous animation frame and schedule new one
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      animationFrameRef.current = requestAnimationFrame(() => {
-        updateElement(id, updates);
-        setLastUpdateTime(performance.now());
-      });
+  // Sync state with props when NOT interacting
+  useEffect(() => {
+    if (!isInteracting.current) {
+      setLocalPos({ x, y, w: width, h: height });
     }
-  }, [id, updateElement, lastUpdateTime]);
+  }, [x, y, width, height]);
 
-  // Handle mouse down for dragging and resizing
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault();
+  const snap = (val) => Math.round(val / 4) * 4;
+
+  const onMouseDown = (e) => {
     e.stopPropagation();
-    
     setSelectedElement(id);
-    
-    if (e.target.dataset.handle) {
-      // Start resizing
-      setIsResizing(true);
-      setResizeDirection(e.target.dataset.handle);
-      setResizeStart({
-        x: e.clientX,
-        y: e.clientY,
-        width: width,
-        height: height,
-        startX: x,
-        startY: y
-      });
-    } else {
-      // Start dragging
-      setIsDragging(true);
-      setDragStart({
-        x: e.clientX - x,
-        y: e.clientY - y
-      });
-    }
-  }, [id, x, y, width, height, setSelectedElement]);
 
-  // Handle mouse move for smooth dragging and resizing
-  const handleMouseMove = useCallback((e) => {
-    if (isDragging) {
-      const newX = Math.max(0, Math.min(e.clientX - dragStart.x, canvasWidth - width));
-      const newY = Math.max(0, Math.min(e.clientY - dragStart.y, canvasHeight - height));
-      
-      // Use throttled update for smooth performance
-      throttledUpdate({ x: newX, y: newY });
-    } else if (isResizing) {
-      const deltaX = e.clientX - resizeStart.x;
-      const deltaY = e.clientY - resizeStart.y;
-      
-      let newWidth = resizeStart.width;
-      let newHeight = resizeStart.height;
-      let newX = resizeStart.startX;
-      let newY = resizeStart.startY;
-      
-      switch (resizeDirection) {
-        case 'bottom-right':
-          newWidth = Math.max(50, Math.min(resizeStart.width + deltaX, canvasWidth - resizeStart.startX));
-          newHeight = Math.max(50, Math.min(resizeStart.height + deltaY, canvasHeight - resizeStart.startY));
-          break;
-        case 'bottom-left':
-          newWidth = Math.max(50, Math.min(resizeStart.width - deltaX, resizeStart.startX));
-          newX = Math.max(0, Math.min(resizeStart.startX + deltaX, canvasWidth - 50));
-          newHeight = Math.max(50, Math.min(resizeStart.height + deltaY, canvasHeight - resizeStart.startY));
-          break;
-        case 'top-right':
-          newWidth = Math.max(50, Math.min(resizeStart.width + deltaX, canvasWidth - resizeStart.startX));
-          newHeight = Math.max(50, Math.min(resizeStart.height - deltaY, resizeStart.startY));
-          newY = Math.max(0, Math.min(resizeStart.startY + deltaY, canvasHeight - 50));
-          break;
-        case 'top-left':
-          newWidth = Math.max(50, Math.min(resizeStart.width - deltaX, resizeStart.startX));
-          newHeight = Math.max(50, Math.min(resizeStart.height - deltaY, resizeStart.startY));
-          newX = Math.max(0, Math.min(resizeStart.startX + deltaX, canvasWidth - 50));
-          newY = Math.max(0, Math.min(resizeStart.startY + deltaY, canvasHeight - 50));
-          break;
-        case 'left':
-          newWidth = Math.max(50, Math.min(resizeStart.width - deltaX, resizeStart.startX));
-          newX = Math.max(0, Math.min(resizeStart.startX + deltaX, canvasWidth - 50));
-          break;
-        case 'right':
-          newWidth = Math.max(50, Math.min(resizeStart.width + deltaX, canvasWidth - resizeStart.startX));
-          break;
-        case 'top':
-          newHeight = Math.max(50, Math.min(resizeStart.height - deltaY, resizeStart.startY));
-          newY = Math.max(0, Math.min(resizeStart.startY + deltaY, canvasHeight - 50));
-          break;
-        case 'bottom':
-          newHeight = Math.max(50, Math.min(resizeStart.height + deltaY, canvasHeight - resizeStart.startY));
-          break;
-        default:
-          break;
+    const isHandle = e.target.classList.contains('resize-handle');
+    const dir = isHandle ? e.target.dataset.dir : '';
+
+    isInteracting.current = true;
+    startRef.current = {
+      mx: e.clientX,
+      my: e.clientY,
+      sx: x,
+      sy: y,
+      sw: width,
+      sh: height,
+      dir
+    };
+
+    const handleMouseMove = (moveE) => {
+      if (!isInteracting.current) return;
+
+      const dx = (moveE.clientX - startRef.current.mx) / scale;
+      const dy = (moveE.clientY - startRef.current.my) / scale;
+      const { sx, sy, sw, sh, dir: d } = startRef.current;
+
+      let next = { x: sx, y: sy, w: sw, h: sh };
+
+      if (!d) { // Dragging
+        next.x = snap(sx + dx);
+        next.y = snap(sy + dy);
+      } else { // Resizing
+        if (d.includes('r')) next.w = Math.max(10, snap(sw + dx));
+        if (d.includes('b')) next.h = Math.max(10, snap(sh + dy));
+        if (d.includes('l')) {
+          const newW = Math.max(10, snap(sw - dx));
+          next.x = sx + (sw - newW);
+          next.w = newW;
+        }
+        if (d.includes('t')) {
+          const newH = Math.max(10, snap(sh - dy));
+          next.y = sy + (sh - newH);
+          next.h = newH;
+        }
       }
-      
-      // Maintain aspect ratio for circles
-      if (type === 'circle') {
-        const size = Math.min(newWidth, newHeight);
-        newWidth = size;
-        newHeight = size;
-      }
-      
-      // Use throttled update for smooth performance
-      throttledUpdate({ x: newX, y: newY, width: newWidth, height: newHeight });
-    }
-  }, [isDragging, isResizing, dragStart, resizeStart, resizeDirection, width, height, canvasWidth, canvasHeight, throttledUpdate, type]);
 
-  // Handle mouse up
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setIsResizing(false);
-    setResizeDirection(null);
-    
-    // Cancel any pending animation frame
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-  }, []);
+      setLocalPos(next);
 
-  // Add event listeners only when needed
-  useEffect(() => {
-    if (isDragging || isResizing) {
-      document.addEventListener('mousemove', handleMouseMove, { passive: true });
-      document.addEventListener('mouseup', handleMouseUp, { passive: true });
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
-
-  // Cleanup animation frame on unmount
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      // FORCE DIRECT DOM UPDATE for maximum smoothness (60fps)
+      if (shapeRef.current) {
+        shapeRef.current.style.transform = `translate(${next.x}px, ${next.y}px)`;
+        shapeRef.current.style.width = `${next.w}px`;
+        shapeRef.current.style.height = `${next.h}px`;
       }
     };
-  }, []);
 
-  // Handle double click for text editing
-  const handleDoubleClick = useCallback(() => {
-    if (type === 'text') {
-      setIsEditing(true);
-    }
-  }, [type]);
+    const handleMouseUp = () => {
+      if (isInteracting.current) {
+        isInteracting.current = false;
+        // Batch sync to main elements state
+        updateElement(id, { 
+          x: localPos.current?.x || 0, // Fallback if ref was used, but we'll use state
+          ...localPos 
+        });
+        
+        // Final commit to React State tree
+        updateElement(id, { 
+          x: localPos.x, 
+          y: localPos.y, 
+          width: localPos.w, 
+          height: localPos.h 
+        });
+      }
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
 
-  // Handle text input change
-  const handleTextChange = useCallback((e) => {
-    setInputText(e.target.value);
-  }, []);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
 
-  // Handle text input blur
-  const handleTextBlur = useCallback(() => {
-    setIsEditing(false);
-    updateElement(id, { text: inputText });
-  }, [inputText, updateElement, id]);
+  const isSelected = selectedElement === id;
 
-  // Memoize shape styles
-  const shapeStyles = useMemo(() => ({
-    left: `${x}px`,
-    top: `${y}px`,
-    width: `${width}px`,
-    height: `${height}px`,
-    borderRadius: type === 'circle' ? '50%' : `${borderRadius}px`,
+  // Progressive Z-Index: Selected is always top, newer elements are above older
+  const zIndex = useMemo(() => {
+    if (isInteracting.current) return 9999;
+    if (isSelected) return 999;
+    return 10 + index;
+  }, [isSelected, index]);
+
+  const containerStyle = useMemo(() => ({
+    transform: `translate(${localPos.x}px, ${localPos.y}px)`,
+    width: `${localPos.w}px`,
+    height: `${localPos.h}px`,
+    zIndex
+  }), [localPos, zIndex]);
+
+  const contentStyle = useMemo(() => ({
     backgroundColor: type === 'text' ? 'transparent' : backgroundColor,
-    position: 'absolute',
-    cursor: isDragging || isResizing ? 'grabbing' : 'grab',
-    userSelect: 'none',
-    touchAction: 'none',
-  }), [x, y, width, height, type, borderRadius, backgroundColor, isDragging, isResizing]);
-
-  // Memoize text styles
-  const textStyles = useMemo(() => ({
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'text',
-    padding: '8px',
-    fontSize: fontSize ? `${fontSize}px` : '16px',
-    fontWeight: fontWeight || 'normal',
-    color: fontColor || '#000000',
-    border: 'none',
-    background: 'transparent',
-    outline: 'none',
-    textAlign: 'center',
-    wordWrap: 'break-word',
-    overflowWrap: 'break-word',
-    userSelect: 'text',
-  }), [fontSize, fontWeight, fontColor]);
+    borderRadius: type === 'circle' ? '50%' : `${borderRadius}px`,
+    color: fontColor,
+    fontSize: `${fontSize}px`,
+    fontWeight: fontWeight,
+  }), [type, backgroundColor, borderRadius, fontColor, fontSize, fontWeight]);
 
   return (
     <div
       ref={shapeRef}
-      className={`shape ${type} ${isSelected ? 'selected' : ''}`}
-      style={shapeStyles}
-      onMouseDown={handleMouseDown}
-      onDoubleClick={handleDoubleClick}
-      data-type={type}
+      className={`shape-wrapper ${type} ${isSelected ? 'active' : ''}`}
+      style={containerStyle}
+      onMouseDown={onMouseDown}
     >
-      {type === 'text' ? (
-        isEditing ? (
-          <input
-            type="text"
-            value={inputText}
-            onChange={handleTextChange}
-            onBlur={handleTextBlur}
-            style={textStyles}
-            autoFocus
-          />
-        ) : (
-          <span style={textStyles}>
-            {inputText || 'Double-click to edit'}
-          </span>
-        )
-      ) : type === 'image' ? (
-        <img
-          src={src}
-          alt="Element"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          draggable={false}
-        />
-      ) : null}
+      <div className="shape-surface" style={contentStyle}>
+        {type === 'text' && (
+          <div 
+            className="text-content" 
+            contentEditable 
+            suppressContentEditableWarning
+            onBlur={(e) => updateElement(id, { text: e.currentTarget.textContent })}
+          >
+            {text}
+          </div>
+        )}
+        
+        {type === 'image' && (
+          <img src={src} alt="Layer" draggable={false} className="image-content" />
+        )}
+      </div>
 
-      {/* Resize handles - only show when selected */}
       {isSelected && (
-        <>
-          <div className="handle top-left" data-handle="top-left" />
-          <div className="handle top-right" data-handle="top-right" />
-          <div className="handle bottom-left" data-handle="bottom-left" />
-          <div className="handle bottom-right" data-handle="bottom-right" />
-          <div className="handle left" data-handle="left" />
-          <div className="handle right" data-handle="right" />
-          <div className="handle top" data-handle="top" />
-          <div className="handle bottom" data-handle="bottom" />
-        </>
+        <div className="selection-overlay">
+          <div className="resize-handle tl" data-dir="tl" />
+          <div className="resize-handle tr" data-dir="tr" />
+          <div className="resize-handle bl" data-dir="bl" />
+          <div className="resize-handle br" data-dir="br" />
+          <div className="resize-handle t" data-dir="t" />
+          <div className="resize-handle b" data-dir="b" />
+          <div className="resize-handle l" data-dir="l" />
+          <div className="resize-handle r" data-dir="r" />
+          
+          {/* Boundary Labels (Figma Style) */}
+          <div className="dim-label top">{Math.round(localPos.w)}</div>
+          <div className="dim-label side">{Math.round(localPos.h)}</div>
+        </div>
       )}
     </div>
   );
